@@ -1,5 +1,7 @@
 import { createContext, useContext } from "react";
 import { useState } from "react";
+import ShoppingCart from "../components/ShoppingCart";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 type CartProviderProps = {
   children: React.ReactNode
@@ -10,6 +12,10 @@ interface CartContextType {
     icreaseQuantity: (id: number) => void
     decreaseQuantity: (id: number) => void
     removeItem: (id: number) => void
+    cartQuantity: number
+    cartItems: CartItem[]
+    openCart: () => void
+    closeCart: () => void
 }
 
 type CartItem = {
@@ -21,12 +27,14 @@ type CartItem = {
 export const CartContext = createContext({} as CartContextType)
 
 export default function ShoppingCartContext({children}: CartProviderProps) {
+  const [cartItems, setCartItems] = useLocalStorage<CartItem[]>("shop-cart",[])
+  const [isOpen, setIsOpen] = useState(false)
 function getQuantity(id: number) {
-        return cartItem.find(curItem=> curItem.id === id)?.quantity || 0
+        return cartItems.find(curItem=> curItem.id === id)?.quantity || 0
       }
 
 function icreaseQuantity(id: number) {
-        setCartItem(curItem=> {
+        setCartItems(curItem=> {
           if(curItem.find(curItem=> curItem.id === id) == null) {
             return [...curItem, {id, quantity: 1}]
           } else {
@@ -42,7 +50,7 @@ function icreaseQuantity(id: number) {
     }
 
 function decreaseQuantity(id: number) {
-        setCartItem(curItem=> {
+        setCartItems(curItem=> {
           if(curItem.find(curItem=> curItem.id === id)?.quantity === 1) {
             return curItem.filter(curItem=> curItem.id !== id)
           } else {
@@ -58,15 +66,19 @@ function decreaseQuantity(id: number) {
     }
 
 function removeItem(id: number) {
-        setCartItem(curItem=> {
+        setCartItems(curItem=> {
           return curItem.filter(curItem=> curItem.id !== id)
         })
     }
+ const openCart = ()=> setIsOpen(true)
+ const closeCart = ()=> setIsOpen(false)
 
-const [cartItem, setCartItem] = useState<CartItem[]>([])
+const cartQuantity = cartItems.reduce((quantity, item)=> item.quantity + quantity, 0)
+
   return (
-    <CartContext.Provider value={{getQuantity, icreaseQuantity, decreaseQuantity, removeItem}}>
+    <CartContext.Provider value={{getQuantity, icreaseQuantity, decreaseQuantity, removeItem,  cartQuantity, cartItems, openCart, closeCart}}>
       {children}
+      <ShoppingCart isOpen={isOpen} />
     </CartContext.Provider>
   )
 }
